@@ -10,29 +10,26 @@ export const TimeAddButton = ({ onAddTime }: TimeAddButtonProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const didLongPress = useRef(false);
 
-  const handleMouseDown = () => {
+  const startLongPress = () => {
+    didLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
       setIsExpanded(true);
     }, 500);
   };
 
-  const handleMouseUp = () => {
+  const endLongPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
-    if (!isExpanded) {
+    if (!didLongPress.current && !isExpanded) {
       onAddTime(15 * 60); // Default 15 minutes
     }
   };
 
-  const handleTouchStart = () => {
-    longPressTimer.current = setTimeout(() => {
-      setIsExpanded(true);
-    }, 500);
-  };
-
-  const handleTouchEnd = () => {
+  const cancelLongPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
@@ -65,11 +62,12 @@ export const TimeAddButton = ({ onAddTime }: TimeAddButtonProps) => {
     <div ref={containerRef} className="relative">
       <motion.button
         className="glass-button w-12 h-12 text-xs font-medium text-foreground/80 select-none"
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => longPressTimer.current && clearTimeout(longPressTimer.current)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        onMouseDown={startLongPress}
+        onMouseUp={endLongPress}
+        onMouseLeave={cancelLongPress}
+        onTouchStart={startLongPress}
+        onTouchEnd={endLongPress}
+        onTouchCancel={cancelLongPress}
         whileTap={{ scale: 0.95 }}
       >
         +15m

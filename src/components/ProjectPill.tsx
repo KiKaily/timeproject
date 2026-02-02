@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Project, formatTime, getAccentColorClass } from '@/types/project';
 import { TimeAddButton } from './TimeAddButton';
@@ -10,6 +11,35 @@ interface ProjectPillProps {
 }
 
 export const ProjectPill = ({ project, onToggleTimer, onAddTime, onEdit }: ProjectPillProps) => {
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const didLongPress = useRef(false);
+
+  const handleTouchStart = () => {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      onEdit();
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+    if (!didLongPress.current) {
+      onToggleTimer();
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Prevent click if it was a long press
+    if (didLongPress.current) {
+      e.preventDefault();
+      return;
+    }
+    onToggleTimer();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -20,21 +50,24 @@ export const ProjectPill = ({ project, onToggleTimer, onAddTime, onEdit }: Proje
       <TimeAddButton onAddTime={onAddTime} />
 
       <motion.div
-        className={`glass-pill flex-1 flex items-center gap-3 px-4 py-3 cursor-pointer ${
+        className={`glass-pill flex-1 flex items-center gap-3 pl-6 pr-4 py-3 cursor-pointer relative overflow-hidden ${
           project.isRunning ? 'timer-active' : ''
         }`}
-        onClick={onToggleTimer}
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={() => longPressTimer.current && clearTimeout(longPressTimer.current)}
         onContextMenu={(e) => {
           e.preventDefault();
           onEdit();
         }}
         whileTap={{ scale: 0.98 }}
       >
-        {/* Color accent indicator */}
+        {/* Color accent - circular blob on left edge */}
         <div className={`accent-indicator ${getAccentColorClass(project.accentColor)}`} />
 
         {/* Project name */}
-        <span className="flex-1 font-medium text-foreground/90 truncate">
+        <span className="flex-1 font-medium text-foreground/90 truncate ml-4">
           {project.name}
         </span>
 

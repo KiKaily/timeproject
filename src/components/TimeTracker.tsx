@@ -42,7 +42,7 @@ export const TimeTracker = () => {
               {projects.filter(p => p.isRunning).length > 0 ? (
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  Recording
+                  <span className="text-primary">Recording</span>
                 </span>
               ) : (
                 'Ready'
@@ -85,7 +85,7 @@ export const TimeTracker = () => {
           transition={{ delay: 0.5 }}
           className="text-center text-xs text-muted-foreground/60 mt-4"
         >
-          Tap project to start/stop • Hold +15m for more options • Right-click to edit
+          Tap to start/stop • Hold pill to edit • Hold +15m for options
         </motion.p>
       </div>
 
