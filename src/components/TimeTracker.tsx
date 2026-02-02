@@ -7,7 +7,7 @@ import { EditProjectModal } from './EditProjectModal';
 import { Project, AccentColor } from '@/types/project';
 
 export const TimeTracker = () => {
-  const { projects, toggleTimer, addTime, createProject, updateProject, deleteProject } = useProjects();
+  const { projects, toggleTimer, addTime, setTime, createProject, updateProject, deleteProject } = useProjects();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -60,6 +60,7 @@ export const TimeTracker = () => {
                 project={project}
                 onToggleTimer={() => toggleTimer(project.id)}
                 onAddTime={(seconds) => addTime(project.id, seconds)}
+                onSetTime={(seconds) => setTime(project.id, seconds)}
                 onEdit={() => setEditingProject(project)}
               />
             ))}
