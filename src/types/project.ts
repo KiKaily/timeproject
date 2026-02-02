@@ -36,6 +36,20 @@ export const getAccentColorClass = (color: AccentColor): string => {
   return colorMap[color];
 };
 
+export const getAccentBorderClass = (color: AccentColor): string => {
+  const colorMap: Record<AccentColor, string> = {
+    red: 'border-accent-red',
+    orange: 'border-accent-orange',
+    yellow: 'border-accent-yellow',
+    green: 'border-accent-green',
+    cyan: 'border-accent-cyan',
+    blue: 'border-accent-blue',
+    purple: 'border-accent-purple',
+    pink: 'border-accent-pink',
+  };
+  return colorMap[color];
+};
+
 export const formatTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);

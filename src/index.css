@@ -131,7 +131,13 @@
   }
 
   .accent-indicator {
-    @apply w-10 h-10 rounded-full absolute -left-1 opacity-80;
+    @apply absolute w-8 h-8 rounded-full border-2 opacity-60;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    /* C-shape: hide the right side of the border */
+    clip-path: polygon(0% 0%, 60% 0%, 60% 100%, 0% 100%);
   }
 }
 

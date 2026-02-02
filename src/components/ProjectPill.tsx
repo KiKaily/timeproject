@@ -1,16 +1,17 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Project, formatTime, getAccentColorClass } from '@/types/project';
+import { Project, formatTime, getAccentBorderClass } from '@/types/project';
 import { TimeAddButton } from './TimeAddButton';
 
 interface ProjectPillProps {
   project: Project;
   onToggleTimer: () => void;
   onAddTime: (seconds: number) => void;
+  onSetTime: (seconds: number) => void;
   onEdit: () => void;
 }
 
-export const ProjectPill = ({ project, onToggleTimer, onAddTime, onEdit }: ProjectPillProps) => {
+export const ProjectPill = ({ project, onToggleTimer, onAddTime, onSetTime, onEdit }: ProjectPillProps) => {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const didLongPress = useRef(false);
 
@@ -47,7 +48,7 @@ export const ProjectPill = ({ project, onToggleTimer, onAddTime, onEdit }: Proje
       exit={{ opacity: 0, y: -20 }}
       className="flex items-center gap-3"
     >
-      <TimeAddButton onAddTime={onAddTime} />
+      <TimeAddButton onAddTime={onAddTime} onSetTime={onSetTime} />
 
       <motion.div
         className={`glass-pill flex-1 flex items-center gap-3 pl-6 pr-4 py-3 cursor-pointer relative overflow-hidden ${
@@ -64,7 +65,7 @@ export const ProjectPill = ({ project, onToggleTimer, onAddTime, onEdit }: Proje
         whileTap={{ scale: 0.98 }}
       >
         {/* Color accent - circular blob on left edge */}
-        <div className={`accent-indicator ${getAccentColorClass(project.accentColor)}`} />
+        <div className={`accent-indicator ${getAccentBorderClass(project.accentColor)}`} />
 
         {/* Project name */}
         <span className="flex-1 font-medium text-foreground/90 truncate ml-4">

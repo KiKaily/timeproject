@@ -76,6 +76,16 @@ export const useProjects = () => {
     );
   }, []);
 
+  const setTime = useCallback((id: string, seconds: number) => {
+    setProjects(prev =>
+      prev.map(project =>
+        project.id === id
+          ? { ...project, timeInSeconds: Math.max(0, seconds) }
+          : project
+      )
+    );
+  }, []);
+
   const createProject = useCallback((name: string, accentColor: AccentColor) => {
     const newProject: Project = {
       id: generateId(),
@@ -104,6 +114,7 @@ export const useProjects = () => {
     projects,
     toggleTimer,
     addTime,
+    setTime,
     createProject,
     updateProject,
     deleteProject,
