@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* iOS Glassmorphism Dark Theme */
 
@@ -53,6 +53,54 @@
     --accent-blue: 217 91% 60%;
     --accent-purple: 262 83% 58%;
     --accent-pink: 330 81% 60%;
+  }
+
+  :root[data-theme='dark'] {
+    --background: 228 15% 8%;
+    --foreground: 0 0% 98%;
+    --card: 228 20% 12%;
+    --card-foreground: 0 0% 98%;
+    --muted: 228 15% 20%;
+    --muted-foreground: 220 10% 55%;
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    --border: 228 15% 25%;
+  }
+
+  :root[data-theme='marathon'] {
+    --background: 210 35% 6%;
+    --foreground: 186 100% 95%;
+    --card: 215 35% 10%;
+    --card-foreground: 186 100% 95%;
+    --muted: 215 35% 14%;
+    --muted-foreground: 190 25% 65%;
+    --primary: 160 100% 50%;
+    --primary-foreground: 210 40% 8%;
+    --border: 215 35% 20%;
+  }
+
+  :root[data-theme='green'] {
+    --background: 145 40% 10%;
+    --foreground: 138 60% 90%;
+    --card: 145 38% 14%;
+    --card-foreground: 138 60% 90%;
+    --muted: 145 32% 18%;
+    --muted-foreground: 138 20% 60%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 140 30% 10%;
+    --border: 145 30% 24%;
+  }
+
+  :root[data-theme='earth'] {
+    --background: 36 33% 88%;
+    --foreground: 24 25% 22%;
+    --card: 34 28% 82%;
+    --card-foreground: 24 25% 22%;
+    --muted: 34 24% 78%;
+    --muted-foreground: 24 18% 40%;
+    --primary: 30 40% 35%;
+    --primary-foreground: 36 33% 90%;
+    --border: 30 20% 70%;
   }
 
   .dark {
@@ -131,18 +179,218 @@
   }
 
   .accent-indicator {
-    @apply absolute w-8 h-8 rounded-full border-2 opacity-60;
-    left: 4px;
+    @apply absolute w-2 h-2 rounded-full border-0;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    background: transparent;
-    /* C-shape: hide the right side of the border */
-    clip-path: polygon(0% 0%, 60% 0%, 60% 100%, 0% 100%);
   }
 }
 
 @layer utilities {
   .text-glow {
     text-shadow: 0 0 20px currentColor;
+  }
+
+  /* Pro Color Effects */
+  .color-rainbow {
+    background: linear-gradient(90deg, 
+      #ff0000 0%, 
+      #ff7f00 16.67%, 
+      #ffff00 33.33%, 
+      #00ff00 50%, 
+      #0000ff 66.67%, 
+      #4b0082 83.33%, 
+      #9400d3 100%);
+  }
+
+  .color-aurora {
+    background: linear-gradient(180deg, 
+      #00ff88 0%, 
+      #00ffdd 20%, 
+      #00ccff 40%, 
+      #0088ff 60%, 
+      #00ff88 100%);
+    animation: aurora 4s ease-in-out infinite;
+  }
+
+  @keyframes aurora {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+  }
+
+  .color-neon {
+    background: #00ff00;
+    animation: neon-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes neon-pulse {
+    0%, 100% { 
+      background: #00ff00;
+    }
+    50% { 
+      background: #00dd00;
+    }
+  }
+
+  .color-liquid {
+    background: linear-gradient(135deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #4facfe 75%, 
+      #667eea 100%);
+    background-size: 300% 300%;
+    animation: liquid-flow 4s ease infinite;
+  }
+
+  @keyframes liquid-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .color-hologram {
+    background: linear-gradient(45deg, 
+      #ff00ff 0%, 
+      #00ffff 25%, 
+      #ffff00 50%, 
+      #ff00ff 100%);
+    background-size: 400% 400%;
+    animation: hologram 3s ease infinite;
+  }
+
+  @keyframes hologram {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .color-sunset {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 50%, #ffa552 100%);
+  }
+
+  .color-ocean {
+    background: linear-gradient(135deg, #006994 0%, #0088b3 50%, #00b4cc 100%);
+  }
+
+  .color-fire {
+    background: linear-gradient(180deg, #ff0000 0%, #ff6600 50%, #ffaa00 100%);
+    animation: fire-flicker 0.5s ease-in-out infinite;
+  }
+
+  @keyframes fire-flicker {
+    0%, 100% { 
+      background: linear-gradient(180deg, #ff0000 0%, #ff6600 50%, #ffaa00 100%);
+    }
+    50% { 
+      background: linear-gradient(180deg, #ff3300 0%, #ff7700 50%, #ffbb00 100%);
+    }
+  }
+
+  .color-electric {
+    background: linear-gradient(90deg, #00ffff 0%, #6600ff 50%, #00ffff 100%);
+    background-size: 200% 200%;
+    animation: electric 2s ease infinite;
+  }
+
+  @keyframes electric {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 0%; }
+    100% { background-position: 0% 0%; }
+  }
+
+  .color-radioactive {
+    background: radial-gradient(circle at 30% 30%, #ffffcc 0%, #faff00 40%, #b6ff00 100%);
+    box-shadow:
+      0 0 6px rgba(250, 255, 0, 0.9),
+      0 0 14px rgba(182, 255, 0, 0.8),
+      0 0 24px rgba(182, 255, 0, 0.6);
+    animation: radioactive-glow 1.6s ease-in-out infinite;
+  }
+
+  @keyframes radioactive-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.6); }
+  }
+
+  .color-prism {
+    background: conic-gradient(
+      from 0deg,
+      #ff2d95,
+      #ff8c1a,
+      #ffe600,
+      #00e676,
+      #00b0ff,
+      #7c4dff,
+      #ff2d95
+    );
+    animation: prism-spin 3s linear infinite;
+  }
+
+  @keyframes prism-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .color-vaporwave {
+    background: linear-gradient(135deg, #ff5fd7 0%, #7a5cff 50%, #3dd5ff 100%);
+    background-size: 200% 200%;
+    animation: vaporwave 3.5s ease infinite;
+  }
+
+  @keyframes vaporwave {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .color-nova {
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #ffd6ff 15%, #b200ff 45%, #230033 100%);
+    animation: nova-pulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes nova-pulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.4); }
+  }
+
+  .color-cosmic {
+    background: linear-gradient(135deg, #1a0033 0%, #330066 40%, #660099 70%, #1a0033 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .color-cosmic::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                radial-gradient(circle at 40% 20%, rgba(255,255,255,0.3) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  .color-chromatic {
+    background: linear-gradient(60deg, 
+      #ff0080 0%, 
+      #ff8c00 25%, 
+      #40e0d0 50%, 
+      #ff0080 75%, 
+      #ff8c00 100%);
+    background-size: 200% 200%;
+    animation: chromatic 4s ease infinite;
+  }
+
+  @keyframes chromatic {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
   }
 }

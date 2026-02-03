@@ -1,15 +1,68 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { Plus, Crown, Download, Palette, FolderOpen, Settings } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { ProjectPill } from './ProjectPill';
 import { EditProjectModal } from './EditProjectModal';
+import { UpgradeModal } from './UpgradeModal';
+import { ThemeSelector } from './ThemeSelector';
+import { FolderManager } from './FolderManager';
 import { Project, AccentColor } from '@/types/project';
+import { getSubscriptionTier, SUBSCRIPTION_FEATURES } from '@/types/subscription';
 
 export const TimeTracker = () => {
-  const { projects, toggleTimer, addTime, setTime, createProject, updateProject, deleteProject } = useProjects();
+  const { 
+    projects, 
+    folders, 
+    selectedFolder, 
+    toggleTimer, 
+    addTime, 
+    setTime, 
+    createProject, 
+    updateProject, 
+    deleteProject,
+    createFolder,
+    deleteFolder,
+    setSelectedFolder,
+    updateProjectFolder,
+  } = useProjects();
+  const { isInstallable, promptInstall, isStandalone } = useInstallPrompt();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showThemes, setShowThemes] = useState(false);
+  const [showFolders, setShowFolders] = useState(false);
+  const [movingProjectId, setMovingProjectId] = useState<string | null>(null);
+  const [multipleRunningWarning, setMultipleRunningWarning] = useState(false);
+  const [allowStopFromStatus, setAllowStopFromStatus] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'dark';
+    return localStorage.getItem('tp-theme') || 'dark';
+  });
+  const [showSeconds, setShowSeconds] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem('tp-show-seconds');
+    return saved ? saved === 'true' : false;
+  });
+
+  const subscriptionTier = getSubscriptionTier();
+  const features = SUBSCRIPTION_FEATURES[subscriptionTier];
+  const PROJECT_LIMIT = features.maxProjects;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tp-show-seconds', String(showSeconds));
+    }
+  }, [showSeconds]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', selectedTheme);
+      localStorage.setItem('tp-theme', selectedTheme);
+    }
+  }, [selectedTheme]);
 
   const handleSaveEdit = (updates: { name: string; timeInSeconds: number; accentColor: AccentColor }) => {
     if (editingProject) {
@@ -18,7 +71,27 @@ export const TimeTracker = () => {
   };
 
   const handleSaveNew = (updates: { name: string; timeInSeconds: number; accentColor: AccentColor }) => {
+    if (projects.length >= PROJECT_LIMIT) {
+      if (subscriptionTier === 'free') {
+        setShowUpgrade(true);
+      } else {
+        alert(`Maximum ${PROJECT_LIMIT} projects reached.`);
+      }
+      return;
+    }
     createProject(updates.name, updates.accentColor);
+  };
+
+  const handleAddProject = () => {
+    if (projects.length >= PROJECT_LIMIT) {
+      if (subscriptionTier === 'free') {
+        setShowUpgrade(true);
+      } else {
+        alert(`Maximum ${PROJECT_LIMIT} projects reached.`);
+      }
+      return;
+    }
+    setIsCreating(true);
   };
 
   const handleDelete = () => {
@@ -37,57 +110,248 @@ export const TimeTracker = () => {
           className="glass-card p-6 mb-4"
         >
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">TimeTracker</h1>
-            <div className="text-xs text-muted-foreground">
-              {projects.filter(p => p.isRunning).length > 0 ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <span className="text-primary">Recording</span>
-                </span>
+            <div>
+              <h1 className="text-xl font-semibold text-foreground tracking-tight">timeprojec</h1>
+              <p className="text-[0.625rem] text-orange-500 font-medium mt-0.5">by rcrear.com</p>
+            </div>
+            <div 
+              className="text-xs cursor-pointer"
+              onClick={() => {
+                const runningProjects = projects.filter(p => p.isRunning);
+                if (runningProjects.length === 1 && allowStopFromStatus) {
+                  toggleTimer(runningProjects[0].id);
+                } else if (runningProjects.length > 1) {
+                  setMultipleRunningWarning(true);
+                  setTimeout(() => setMultipleRunningWarning(false), 5000);
+                }
+              }}
+            >
+              {projects.filter(p => p.isRunning).length === 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">ready</span>
+                </div>
               ) : (
-                'Ready'
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-primary">recording</span>
+                </div>
               )}
+              <div className="text-muted-foreground text-xs mt-1">tap a project</div>
             </div>
           </div>
         </motion.div>
 
-        {/* Project List */}
-        <div className="glass-card p-4 space-y-3">
-          <AnimatePresence mode="popLayout">
-            {projects.map((project) => (
-              <ProjectPill
-                key={project.id}
-                project={project}
-                onToggleTimer={() => toggleTimer(project.id)}
-                onAddTime={(seconds) => addTime(project.id, seconds)}
-                onSetTime={(seconds) => setTime(project.id, seconds)}
-                onEdit={() => setEditingProject(project)}
-              />
-            ))}
-          </AnimatePresence>
-
-          {/* Add Project Button */}
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="w-full glass-pill py-3 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setIsCreating(true)}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Plus size={18} />
-            <span className="font-medium">Add Project</span>
-          </motion.button>
-        </div>
-
-        {/* Hint */}
+        {/* Tagline */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-xs text-muted-foreground/60 mt-4"
+          transition={{ delay: 0.2 }}
+          className="text-center text-xs text-muted-foreground/60 px-4 mb-2"
         >
-          Tap to start/stop • Hold pill to edit • Hold +15m for options
+          record your time dedicated to projects
         </motion.p>
+
+        {/* Instructions */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-center text-xs text-muted-foreground/60 px-4 mb-4"
+        >
+          tap to start/stop • hold project to edit • hold +15m for options
+        </motion.p>
+
+        {/* Project List */}
+        <div className="glass-card p-4">
+          {subscriptionTier === 'pro' && showFolders && (
+            <FolderManager
+              folders={folders}
+              onCreateFolder={createFolder}
+              onDeleteFolder={deleteFolder}
+              onSelectFolder={setSelectedFolder}
+              selectedFolder={selectedFolder}
+            />
+          )}
+          
+          <div className="space-y-3">
+            <AnimatePresence mode="popLayout">
+              {projects.map((project) => (
+                <ProjectPill
+                  key={project.id}
+                  project={project}
+                  onToggleTimer={() => toggleTimer(project.id)}
+                  onAddTime={(seconds) => addTime(project.id, seconds)}
+                  onSetTime={(seconds) => setTime(project.id, seconds)}
+                  onEdit={() => setEditingProject(project)}
+                  onMoveToFolder={(folderId) => updateProjectFolder(project.id, folderId)}
+                  folders={folders}
+                  showSeconds={showSeconds}
+                />
+              ))}
+            </AnimatePresence>
+
+            {/* Add Project Button */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full glass-pill h-12 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={handleAddProject}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Plus size={18} />
+              <span className="font-medium">add project</span>
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="flex gap-3 mt-4">
+          {!isStandalone && isInstallable && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+              onClick={promptInstall}
+              whileTap={{ scale: 0.95 }}
+              title="Install app on your device"
+            >
+              <Download size={14} />
+              <span>install</span>
+            </motion.button>
+          )}
+          {subscriptionTier === 'pro' && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className={`flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs hover:bg-primary/10 transition-colors ${
+                showFolders ? 'text-primary' : 'text-muted-foreground'
+              }`}
+              onClick={() => setShowFolders(!showFolders)}
+              whileTap={{ scale: 0.95 }}
+              title={showFolders ? 'Hide folders' : 'Show folders'}
+            >
+              <FolderOpen size={14} />
+              <span>folders</span>
+            </motion.button>
+          )}
+          {subscriptionTier === 'free' && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs text-muted-foreground hover:bg-muted/10 transition-colors cursor-not-allowed opacity-50"
+              onClick={() => setShowUpgrade(true)}
+              whileTap={{ scale: 0.95 }}
+              title="Upgrade to pro for folders"
+            >
+              <FolderOpen size={14} />
+              <span>folders</span>
+            </motion.button>
+          )}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+            onClick={() => {
+              if (subscriptionTier === 'free') {
+                setShowUpgrade(true);
+              } else {
+                setShowThemes(true);
+              }
+            }}
+            whileTap={{ scale: 0.95 }}
+            title={subscriptionTier === 'free' ? 'Upgrade to pro for themes' : 'Choose a theme'}
+          >
+            <Palette size={14} />
+            <span>themes</span>
+          </motion.button>
+        </div>
+
+        {/* Settings Button */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="mx-auto mt-3 flex items-center justify-center w-12 h-10 rounded-lg hover:bg-primary/10 transition-colors"
+          onClick={() => setShowSettings(true)}
+          whileTap={{ scale: 0.95 }}
+          title="Settings"
+        >
+          <Settings size={18} className="text-primary" />
+        </motion.button>
+
+        {/* Multiple Running Warning */}
+        <AnimatePresence>
+          {multipleRunningWarning && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mt-2 p-2 glass-card rounded-xl text-xs text-orange-500 text-center"
+            >
+              when multiple projects running disabled, tap each project or change in settings
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Hint */}
+        {/* Settings Modal */}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
+              onClick={() => setShowSettings(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="glass-card p-6 w-full max-w-sm rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 className="text-lg font-semibold text-foreground mb-4">settings</h2>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setAllowStopFromStatus(!allowStopFromStatus)}
+                    className="w-full text-left hover:opacity-80 transition-opacity"
+                  >
+                    <div className={`text-xs ${allowStopFromStatus ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                      stop all projects from <span className={`inline-block w-1.5 h-1.5 rounded-full mx-1 ${allowStopFromStatus ? 'bg-orange-500' : 'bg-muted-foreground'}`} /> recording: {allowStopFromStatus ? 'on' : 'off'}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setShowSeconds(!showSeconds)}
+                    className="w-full text-left hover:opacity-80 transition-opacity"
+                  >
+                    <div className={`text-xs ${showSeconds ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                      show seconds in timers: {showSeconds ? 'on' : 'off'}
+                    </div>
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {subscriptionTier === 'free' && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-3 mx-auto flex items-center gap-2 glass-pill px-4 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+            onClick={() => setShowUpgrade(true)}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Crown size={14} />
+            <span>upgrade to pro • {projects.length}/{PROJECT_LIMIT} projects</span>
+          </motion.button>
+        )}
       </div>
 
       {/* Edit Modal */}
@@ -97,6 +361,8 @@ export const TimeTracker = () => {
         onClose={() => setEditingProject(null)}
         onSave={handleSaveEdit}
         onDelete={handleDelete}
+        onUpgradeClick={() => setShowUpgrade(true)}
+        showSeconds={showSeconds}
       />
 
       {/* Create Modal */}
@@ -107,6 +373,21 @@ export const TimeTracker = () => {
         onSave={handleSaveNew}
         onDelete={() => {}}
         isNew
+        onUpgradeClick={() => setShowUpgrade(true)}
+        showSeconds={showSeconds}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
+
+      {/* Theme Selector Modal */}
+      <ThemeSelector
+        isOpen={showThemes}
+        onClose={() => setShowThemes(false)}
+        onSelectTheme={(themeId) => {
+          setSelectedTheme(themeId);
+        }}
+        selectedTheme={selectedTheme}
       />
     </div>
   );
