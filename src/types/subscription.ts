@@ -2,7 +2,7 @@ export type SubscriptionTier = 'free' | 'pro';
 
 export interface SubscriptionFeatures {
   maxProjects: number;
-  hasFolders: boolean;
+  hasTags: boolean;
   multipleTimers: boolean;
   hasAppThemes: boolean;
   availableColors: string[];
@@ -11,14 +11,14 @@ export interface SubscriptionFeatures {
 export const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeatures> = {
   free: {
     maxProjects: 10,
-    hasFolders: false,
+    hasTags: false,
     multipleTimers: false,
     hasAppThemes: false,
     availableColors: ['red', 'orange', 'yellow', 'lime', 'green', 'cyan', 'blue', 'purple', 'pink', 'slate'],
   },
   pro: {
     maxProjects: 100,
-    hasFolders: true,
+    hasTags: true,
     multipleTimers: true,
     hasAppThemes: true,
     availableColors: [

@@ -1,41 +1,53 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Project, AccentColor, Folder } from '@/types/project';
+import { Project, AccentColor, Tag } from '@/types/project';
 import { getSubscriptionTier, SUBSCRIPTION_FEATURES } from '@/types/subscription';
 
 const STORAGE_KEY = 'timetracker-projects';
-const FOLDERS_STORAGE_KEY = 'timetracker-folders';
-const SELECTED_FOLDER_KEY = 'timetracker-selected-folder';
+const TAGS_STORAGE_KEY = 'timetracker-tags';
+const SELECTED_TAG_KEY = 'timetracker-selected-tag';
+const LEGACY_FOLDERS_STORAGE_KEY = 'timetracker-folders';
+const LEGACY_SELECTED_FOLDER_KEY = 'timetracker-selected-folder';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 const getDefaultProjects = (): Project[] => [
-  { id: generateId(), name: 'freelance work', timeInSeconds: 0, accentColor: 'blue', isRunning: false, lastStartTime: null },
-  { id: generateId(), name: 'art hobby', timeInSeconds: 0, accentColor: 'green', isRunning: false, lastStartTime: null },
-  { id: generateId(), name: 'guitar practice', timeInSeconds: 0, accentColor: 'purple', isRunning: false, lastStartTime: null },
+  { id: generateId(), name: 'project example', timeInSeconds: 0, accentColor: 'blue', isRunning: false, lastStartTime: null, tagIds: [] },
 ];
+
+const migrateProjects = (storedProjects: Project[]): Project[] =>
+  storedProjects.map(project => {
+    const legacyFolderId = (project as Project & { folderId?: string | null }).folderId;
+    const tagIds = project.tagIds ?? (legacyFolderId ? [legacyFolderId] : []);
+    const { folderId, ...rest } = project as Project & { folderId?: string | null };
+    return { ...rest, tagIds };
+  });
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : getDefaultProjects();
+      return stored ? migrateProjects(JSON.parse(stored)) : getDefaultProjects();
     } catch {
       return getDefaultProjects();
     }
   });
 
-  const [folders, setFolders] = useState<Folder[]>(() => {
+  const [tags, setTags] = useState<Tag[]>(() => {
     try {
-      const stored = localStorage.getItem(FOLDERS_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const stored = localStorage.getItem(TAGS_STORAGE_KEY);
+      if (stored) return JSON.parse(stored);
+      const legacy = localStorage.getItem(LEGACY_FOLDERS_STORAGE_KEY);
+      return legacy ? JSON.parse(legacy) : [];
     } catch {
       return [];
     }
   });
 
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(() => {
+  const [selectedTag, setSelectedTag] = useState<string | null>(() => {
     try {
-      return localStorage.getItem(SELECTED_FOLDER_KEY) || null;
+      const selected = localStorage.getItem(SELECTED_TAG_KEY);
+      if (selected) return selected;
+      return localStorage.getItem(LEGACY_SELECTED_FOLDER_KEY) || null;
     } catch {
       return null;
     }
@@ -46,15 +58,15 @@ export const useProjects = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
   }, [projects]);
 
-  // Save folders to localStorage
+  // Save tags to localStorage
   useEffect(() => {
-    localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(folders));
-  }, [folders]);
+    localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+  }, [tags]);
 
-  // Save selected folder to localStorage
+  // Save selected tag to localStorage
   useEffect(() => {
-    localStorage.setItem(SELECTED_FOLDER_KEY, selectedFolder || '');
-  }, [selectedFolder]);
+    localStorage.setItem(SELECTED_TAG_KEY, selectedTag || '');
+  }, [selectedTag]);
 
   // Update running timers every second
   useEffect(() => {
@@ -123,7 +135,7 @@ export const useProjects = () => {
     );
   }, []);
 
-  const createProject = useCallback((name: string, accentColor: AccentColor) => {
+  const createProject = useCallback((name: string, accentColor: AccentColor, tagIds: string[] = []) => {
     const newProject: Project = {
       id: generateId(),
       name,
@@ -131,11 +143,12 @@ export const useProjects = () => {
       accentColor,
       isRunning: false,
       lastStartTime: null,
+      tagIds,
     };
     setProjects(prev => [...prev, newProject]);
   }, []);
 
-  const updateProject = useCallback((id: string, updates: Partial<Pick<Project, 'name' | 'timeInSeconds' | 'accentColor'>>) => {
+  const updateProject = useCallback((id: string, updates: Partial<Pick<Project, 'name' | 'timeInSeconds' | 'accentColor' | 'tagIds'>>) => {
     setProjects(prev =>
       prev.map(project =>
         project.id === id ? { ...project, ...updates } : project
@@ -147,55 +160,65 @@ export const useProjects = () => {
     setProjects(prev => prev.filter(project => project.id !== id));
   }, []);
 
-  const createFolder = useCallback((name: string, color: AccentColor) => {
-    const newFolder: Folder = {
+  const createTag = useCallback((name: string, color: AccentColor) => {
+    const newTag: Tag = {
       id: generateId(),
       name,
       color,
     };
-    setFolders(prev => [...prev, newFolder]);
+    setTags(prev => [...prev, newTag]);
   }, []);
 
-  const deleteFolder = useCallback((folderId: string) => {
-    setFolders(prev => prev.filter(folder => folder.id !== folderId));
-    // Remove folderId from projects in this folder
-    setProjects(prev =>
-      prev.map(project =>
-        project.folderId === folderId ? { ...project, folderId: null } : project
+  const updateTag = useCallback((id: string, updates: Partial<Pick<Tag, 'name' | 'color'>>) => {
+    setTags(prev =>
+      prev.map(tag =>
+        tag.id === id ? { ...tag, ...updates } : tag
       )
     );
-    // If selected folder is deleted, clear selection
-    if (selectedFolder === folderId) {
-      setSelectedFolder(null);
+  }, []);
+
+  const deleteTag = useCallback((tagId: string) => {
+    setTags(prev => prev.filter(tag => tag.id !== tagId));
+    // Remove tagId from projects that have this tag
+    setProjects(prev =>
+      prev.map(project => ({
+        ...project,
+        tagIds: project.tagIds?.filter(id => id !== tagId) || [],
+      }))
+    );
+    // If selected tag is deleted, clear selection
+    if (selectedTag === tagId) {
+      setSelectedTag(null);
     }
-  }, [selectedFolder]);
+  }, [selectedTag]);
 
-  const updateProjectFolder = useCallback((projectId: string, folderId: string | null) => {
+  const updateProjectTags = useCallback((projectId: string, tagIds: string[]) => {
     setProjects(prev =>
       prev.map(project =>
-        project.id === projectId ? { ...project, folderId } : project
+        project.id === projectId ? { ...project, tagIds } : project
       )
     );
   }, []);
 
-  const filteredProjects = selectedFolder
-    ? projects.filter(p => p.folderId === selectedFolder)
-    : projects.filter(p => !p.folderId);
+  const filteredProjects = selectedTag
+    ? projects.filter(p => p.tagIds?.includes(selectedTag))
+    : projects;
 
   return {
     projects: filteredProjects,
     allProjects: projects,
-    folders,
-    selectedFolder,
+    tags,
+    selectedTag,
     toggleTimer,
     addTime,
     setTime,
     createProject,
     updateProject,
     deleteProject,
-    createFolder,
-    deleteFolder,
-    setSelectedFolder,
-    updateProjectFolder,
+    createTag,
+    updateTag,
+    deleteTag,
+    setSelectedTag,
+    updateProjectTags,
   };
 };

@@ -1,55 +1,93 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Crown, Download, Palette, FolderOpen, Settings } from 'lucide-react';
+import { Plus, Crown, Download, Palette, Tag, Settings } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { ProjectPill } from './ProjectPill';
 import { EditProjectModal } from './EditProjectModal';
 import { UpgradeModal } from './UpgradeModal';
 import { ThemeSelector } from './ThemeSelector';
-import { FolderManager } from './FolderManager';
+import { TagManager } from './TagManager';
 import { Project, AccentColor } from '@/types/project';
 import { getSubscriptionTier, SUBSCRIPTION_FEATURES } from '@/types/subscription';
 
 export const TimeTracker = () => {
   const { 
     projects, 
-    folders, 
-    selectedFolder, 
+    tags, 
+    selectedTag, 
     toggleTimer, 
     addTime, 
     setTime, 
     createProject, 
     updateProject, 
     deleteProject,
-    createFolder,
-    deleteFolder,
-    setSelectedFolder,
-    updateProjectFolder,
+    createTag,
+    updateTag,
+    deleteTag,
+    setSelectedTag,
+    updateProjectTags,
   } = useProjects();
   const { isInstallable, promptInstall, isStandalone } = useInstallPrompt();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [pendingEditForUpgrade, setPendingEditForUpgrade] = useState<{
+    projectId: string | null;
+    name: string;
+    timeInSeconds: number;
+    accentColor: AccentColor;
+    tagIds: string[];
+    isNew: boolean;
+  } | null>(null);
   const [showThemes, setShowThemes] = useState(false);
-  const [showFolders, setShowFolders] = useState(false);
-  const [movingProjectId, setMovingProjectId] = useState<string | null>(null);
+  const [showTags, setShowTags] = useState(false);
   const [multipleRunningWarning, setMultipleRunningWarning] = useState(false);
-  const [allowStopFromStatus, setAllowStopFromStatus] = useState(true);
+  const [allowStopFromStatus, setAllowStopFromStatus] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
     return localStorage.getItem('tp-theme') || 'dark';
   });
   const [showSeconds, setShowSeconds] = useState(() => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined') return true;
     const saved = localStorage.getItem('tp-show-seconds');
-    return saved ? saved === 'true' : false;
+    return saved ? saved === 'true' : true;
+  });
+  const [showTutorialCard, setShowTutorialCard] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('tp-show-tutorial');
+    return saved ? saved === 'true' : true;
   });
 
   const subscriptionTier = getSubscriptionTier();
   const features = SUBSCRIPTION_FEATURES[subscriptionTier];
   const PROJECT_LIMIT = features.maxProjects;
+
+  // Restore pending edit after upgrade
+  useEffect(() => {
+    const pendingEditStr = localStorage.getItem('tp-pending-edit');
+    if (pendingEditStr) {
+      try {
+        const pendingEdit = JSON.parse(pendingEditStr);
+        localStorage.removeItem('tp-pending-edit');
+        
+        // Apply the saved edit
+        if (pendingEdit.isNew) {
+          createProject(pendingEdit.name, pendingEdit.accentColor, pendingEdit.tagIds || []);
+        } else if (pendingEdit.projectId) {
+          updateProject(pendingEdit.projectId, {
+            name: pendingEdit.name,
+            timeInSeconds: pendingEdit.timeInSeconds,
+            accentColor: pendingEdit.accentColor,
+            tagIds: pendingEdit.tagIds || [],
+          });
+        }
+      } catch (e) {
+        console.error('Failed to restore pending edit:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -58,19 +96,25 @@ export const TimeTracker = () => {
   }, [showSeconds]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tp-show-tutorial', String(showTutorialCard));
+    }
+  }, [showTutorialCard]);
+
+  useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', selectedTheme);
       localStorage.setItem('tp-theme', selectedTheme);
     }
   }, [selectedTheme]);
 
-  const handleSaveEdit = (updates: { name: string; timeInSeconds: number; accentColor: AccentColor }) => {
+  const handleSaveEdit = (updates: { name: string; timeInSeconds: number; accentColor: AccentColor; tagIds: string[] }) => {
     if (editingProject) {
       updateProject(editingProject.id, updates);
     }
   };
 
-  const handleSaveNew = (updates: { name: string; timeInSeconds: number; accentColor: AccentColor }) => {
+  const handleSaveNew = (updates: { name: string; timeInSeconds: number; accentColor: AccentColor; tagIds: string[] }) => {
     if (projects.length >= PROJECT_LIMIT) {
       if (subscriptionTier === 'free') {
         setShowUpgrade(true);
@@ -79,7 +123,7 @@ export const TimeTracker = () => {
       }
       return;
     }
-    createProject(updates.name, updates.accentColor);
+    createProject(updates.name, updates.accentColor, updates.tagIds);
   };
 
   const handleAddProject = () => {
@@ -112,7 +156,14 @@ export const TimeTracker = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold text-foreground tracking-tight">timeprojec</h1>
-              <p className="text-[0.625rem] text-orange-500 font-medium mt-0.5">by rcrear.com</p>
+              <a 
+                href="https://rcrear.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[0.625rem] text-orange-500 font-medium mt-0.5 hover:text-orange-600 transition-colors block"
+              >
+                by rcrear.com
+              </a>
             </div>
             <div 
               className="text-xs cursor-pointer"
@@ -136,40 +187,49 @@ export const TimeTracker = () => {
                   <span className="text-primary">recording</span>
                 </div>
               )}
-              <div className="text-muted-foreground text-xs mt-1">tap a project</div>
+              <div className="text-muted-foreground text-xs mt-1">{projects.filter(p => p.isRunning).length > 0 ? 'tap to stop' : 'tap a project'}</div>
             </div>
           </div>
         </motion.div>
 
-        {/* Tagline */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-center text-xs text-muted-foreground/60 px-4 mb-2"
-        >
-          record your time dedicated to projects
-        </motion.p>
-
-        {/* Instructions */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-xs text-muted-foreground/60 px-4 mb-4"
-        >
-          tap to start/stop • hold project to edit • hold +15m for options
-        </motion.p>
+        {/* Tutorial Card */}
+        <AnimatePresence>
+          {showTutorialCard && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: 0.2 }}
+              className="glass-card p-3 mb-4 mx-4 relative"
+            >
+              <button
+                onClick={() => setShowTutorialCard(false)}
+                className="absolute top-2 right-2 text-white/60 hover:text-white transition-colors"
+                aria-label="Dismiss tutorial"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+              <div className="text-white text-xs space-y-1 pr-6">
+                <p className="font-medium">record your time dedicated to projects</p>
+                <p className="text-white/80">tap to start/stop • hold project to edit • hold +15m for options</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Project List */}
         <div className="glass-card p-4">
-          {subscriptionTier === 'pro' && showFolders && (
-            <FolderManager
-              folders={folders}
-              onCreateFolder={createFolder}
-              onDeleteFolder={deleteFolder}
-              onSelectFolder={setSelectedFolder}
-              selectedFolder={selectedFolder}
+          {subscriptionTier === 'pro' && showTags && (
+            <TagManager
+              tags={tags}
+              onCreateTag={createTag}
+              onUpdateTag={(id, updates) => updateTag(id, updates)}
+              onDeleteTag={deleteTag}
+              onSelectTag={setSelectedTag}
+              selectedTag={selectedTag}
             />
           )}
           
@@ -183,8 +243,6 @@ export const TimeTracker = () => {
                   onAddTime={(seconds) => addTime(project.id, seconds)}
                   onSetTime={(seconds) => setTime(project.id, seconds)}
                   onEdit={() => setEditingProject(project)}
-                  onMoveToFolder={(folderId) => updateProjectFolder(project.id, folderId)}
-                  folders={folders}
                   showSeconds={showSeconds}
                 />
               ))}
@@ -226,14 +284,14 @@ export const TimeTracker = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
               className={`flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs hover:bg-primary/10 transition-colors ${
-                showFolders ? 'text-primary' : 'text-muted-foreground'
+                showTags ? 'text-primary' : 'text-muted-foreground'
               }`}
-              onClick={() => setShowFolders(!showFolders)}
+              onClick={() => setShowTags(!showTags)}
               whileTap={{ scale: 0.95 }}
-              title={showFolders ? 'Hide folders' : 'Show folders'}
+              title={showTags ? 'Hide tags' : 'Show tags'}
             >
-              <FolderOpen size={14} />
-              <span>folders</span>
+              <Tag size={14} />
+              <span>tags</span>
             </motion.button>
           )}
           {subscriptionTier === 'free' && (
@@ -244,10 +302,10 @@ export const TimeTracker = () => {
               className="flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs text-muted-foreground hover:bg-muted/10 transition-colors cursor-not-allowed opacity-50"
               onClick={() => setShowUpgrade(true)}
               whileTap={{ scale: 0.95 }}
-              title="Upgrade to pro for folders"
+              title="Upgrade to pro for tags"
             >
-              <FolderOpen size={14} />
-              <span>folders</span>
+              <Tag size={14} />
+              <span>tags</span>
             </motion.button>
           )}
           <motion.button
@@ -255,15 +313,9 @@ export const TimeTracker = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
             className="flex-1 flex items-center justify-center gap-2 glass-pill px-4 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
-            onClick={() => {
-              if (subscriptionTier === 'free') {
-                setShowUpgrade(true);
-              } else {
-                setShowThemes(true);
-              }
-            }}
+            onClick={() => setShowThemes(true)}
             whileTap={{ scale: 0.95 }}
-            title={subscriptionTier === 'free' ? 'Upgrade to pro for themes' : 'Choose a theme'}
+            title="Choose a theme"
           >
             <Palette size={14} />
             <span>themes</span>
@@ -333,6 +385,14 @@ export const TimeTracker = () => {
                       show seconds in timers: {showSeconds ? 'on' : 'off'}
                     </div>
                   </button>
+                  <button
+                    onClick={() => setShowTutorialCard(!showTutorialCard)}
+                    className="w-full text-left hover:opacity-80 transition-opacity"
+                  >
+                    <div className={`text-xs ${showTutorialCard ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                      bring back tutorial card: {showTutorialCard ? 'on' : 'off'}
+                    </div>
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
@@ -361,8 +421,12 @@ export const TimeTracker = () => {
         onClose={() => setEditingProject(null)}
         onSave={handleSaveEdit}
         onDelete={handleDelete}
-        onUpgradeClick={() => setShowUpgrade(true)}
+        onUpgradeClick={(pendingEdit) => {
+          setPendingEditForUpgrade(pendingEdit);
+          setShowUpgrade(true);
+        }}
         showSeconds={showSeconds}
+        tags={tags}
       />
 
       {/* Create Modal */}
@@ -373,12 +437,24 @@ export const TimeTracker = () => {
         onSave={handleSaveNew}
         onDelete={() => {}}
         isNew
-        onUpgradeClick={() => setShowUpgrade(true)}
+        onUpgradeClick={(pendingEdit) => {
+          setPendingEditForUpgrade(pendingEdit);
+          setShowUpgrade(true);
+        }}
         showSeconds={showSeconds}
+        tags={tags}
+        defaultTagId={selectedTag}
       />
 
       {/* Upgrade Modal */}
-      <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal 
+        isOpen={showUpgrade} 
+        onClose={() => {
+          setShowUpgrade(false);
+          setPendingEditForUpgrade(null);
+        }} 
+        pendingEdit={pendingEditForUpgrade || undefined}
+      />
 
       {/* Theme Selector Modal */}
       <ThemeSelector
@@ -388,6 +464,7 @@ export const TimeTracker = () => {
           setSelectedTheme(themeId);
         }}
         selectedTheme={selectedTheme}
+        onUpgradeClick={() => setShowUpgrade(true)}
       />
     </div>
   );

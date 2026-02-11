@@ -1,14 +1,28 @@
 import { motion } from 'framer-motion';
 import { Crown, Check } from 'lucide-react';
 import { setSubscriptionTier } from '@/types/subscription';
+import { AccentColor } from '@/types/project';
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  pendingEdit?: {
+    projectId: string | null;
+    name: string;
+    timeInSeconds: number;
+    accentColor: AccentColor;
+    tagIds?: string[];
+    isNew: boolean;
+  };
 }
 
-export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
+export const UpgradeModal = ({ isOpen, onClose, pendingEdit }: UpgradeModalProps) => {
   const handleUpgrade = () => {
+    // Save pending edit to localStorage if exists
+    if (pendingEdit) {
+      localStorage.setItem('tp-pending-edit', JSON.stringify(pendingEdit));
+    }
+    
     // In production, this would integrate with payment gateway
     // For demo purposes, just unlock pro features
     setSubscriptionTier('pro');
@@ -75,8 +89,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
             <div className="flex items-start gap-3">
               <Check className="w-5 h-5 text-primary mt-0.5" />
               <div>
-                <p className="text-foreground font-medium">project folders</p>
-                <p className="text-muted-foreground text-sm">organize projects in folders</p>
+                <p className="text-foreground font-medium">project tags</p>
+                <p className="text-muted-foreground text-sm">organize projects with tags</p>
               </div>
             </div>
             <div className="flex items-start gap-3">

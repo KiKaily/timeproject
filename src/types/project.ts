@@ -12,10 +12,10 @@ export interface Project {
   accentColor: AccentColor;
   isRunning: boolean;
   lastStartTime: number | null;
-  folderId?: string | null;
+  tagIds?: string[];
 }
 
-export interface Folder {
+export interface Tag {
   id: string;
   name: string;
   color: AccentColor;

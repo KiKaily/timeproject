@@ -7,6 +7,26 @@
 /* iOS Glassmorphism Dark Theme */
 
 @layer base {
+  * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* Allow text selection in input fields and editable content */
+  input,
+  textarea,
+  [contenteditable="true"],
+  [contenteditable="plaintext-only"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  
   :root {
     --background: 228 15% 8%;
     --foreground: 0 0% 98%;
@@ -81,26 +101,42 @@
 
   :root[data-theme='green'] {
     --background: 145 40% 10%;
-    --foreground: 138 60% 90%;
+    --foreground: 180 100% 90%;
     --card: 145 38% 14%;
-    --card-foreground: 138 60% 90%;
+    --card-foreground: 180 100% 90%;
     --muted: 145 32% 18%;
-    --muted-foreground: 138 20% 60%;
-    --primary: 142 70% 45%;
+    --muted-foreground: 180 50% 60%;
+    --primary: 142 100% 50%;
     --primary-foreground: 140 30% 10%;
     --border: 145 30% 24%;
   }
 
+  :root[data-theme='neon'] {
+    --background: 0 0% 0%;
+    --foreground: 82 100% 71%;
+    --card: 0 0% 8%;
+    --card-foreground: 82 100% 71%;
+    --muted: 262 80% 50%;
+    --muted-foreground: 262 80% 50%;
+    --primary: 82 100% 71%;
+    --primary-foreground: 0 0% 0%;
+    --border: 262 80% 50%;
+  }
+
   :root[data-theme='earth'] {
-    --background: 36 33% 88%;
-    --foreground: 24 25% 22%;
-    --card: 34 28% 82%;
-    --card-foreground: 24 25% 22%;
-    --muted: 34 24% 78%;
-    --muted-foreground: 24 18% 40%;
-    --primary: 30 40% 35%;
-    --primary-foreground: 36 33% 90%;
-    --border: 30 20% 70%;
+    --background: 35 40% 93%;
+    --foreground: 25 45% 20%;
+    --card: 32 30% 85%;
+    --card-foreground: 25 45% 20%;
+    --muted: 35 35% 88%;
+    --muted-foreground: 25 45% 35%;
+    --primary: 28 76% 54%;
+    --primary-foreground: 25 45% 18%;
+    --border: 32 25% 80%;
+    --glass-bg: 32 30% 87%;
+    --glass-border: 25 45% 30%;
+    --glass-highlight: 25 45% 25%;
+    --glass-shadow: 25 45% 10%;
   }
 
   .dark {
@@ -170,12 +206,37 @@
     transform: scale(0.95);
   }
 
+  :root[data-theme='earth'] .glass-pill:disabled,
+  :root[data-theme='earth'] button:disabled,
+  :root[data-theme='earth'] [disabled] {
+    opacity: 0.4;
+  }
+
+
   .timer-active {
     box-shadow: 
       0 0 20px hsl(var(--primary) / 0.3),
       0 8px 32px hsl(var(--glass-shadow) / 0.4),
       inset 0 1px 0 hsl(var(--glass-highlight) / 0.1);
     border-color: hsl(var(--primary) / 0.5);
+    animation: pill-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pill-pulse {
+    0%, 100% {
+      box-shadow: 
+        0 0 20px hsl(var(--primary) / 0.3),
+        0 8px 32px hsl(var(--glass-shadow) / 0.4),
+        inset 0 1px 0 hsl(var(--glass-highlight) / 0.1);
+      border-color: hsl(var(--primary) / 0.5);
+    }
+    50% {
+      box-shadow: 
+        0 0 30px hsl(var(--primary) / 0.5),
+        0 8px 32px hsl(var(--glass-shadow) / 0.4),
+        inset 0 1px 0 hsl(var(--glass-highlight) / 0.1);
+      border-color: hsl(var(--primary) / 0.7);
+    }
   }
 
   .accent-indicator {

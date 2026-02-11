@@ -9,17 +9,14 @@ interface ProjectPillProps {
   onAddTime: (seconds: number) => void;
   onSetTime: (seconds: number) => void;
   onEdit: () => void;
-  onMoveToFolder?: (folderId: string | null) => void;
-  folders?: Array<{ id: string; name: string }>;
   showSeconds?: boolean;
 }
 
-export const ProjectPill = ({ project, onToggleTimer, onAddTime, onSetTime, onEdit, onMoveToFolder, folders = [], showSeconds = true }: ProjectPillProps) => {
+export const ProjectPill = ({ project, onToggleTimer, onAddTime, onSetTime, onEdit, showSeconds = true }: ProjectPillProps) => {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const didLongPress = useRef(false);
   const pillRef = useRef<HTMLDivElement>(null);
   const [timeMenuExpanded, setTimeMenuExpanded] = useState(false);
-  const [showFolderMenu, setShowFolderMenu] = useState(false);
 
   const handleClick = (e: React.MouseEvent) => {
     // Cancel long press timer and check if it was a long press
@@ -66,7 +63,7 @@ export const ProjectPill = ({ project, onToggleTimer, onAddTime, onSetTime, onEd
 
       <motion.div
         ref={pillRef}
-        className={`glass-pill flex-1 flex items-center gap-3 pl-6 pr-4 py-3 cursor-pointer relative h-12 ${
+        className={`glass-pill flex-1 flex items-center gap-3 pl-6 pr-4 py-3 cursor-pointer relative h-12 select-none ${
           project.isRunning ? 'timer-active' : ''
         }`}
         onClick={handleClick}
@@ -75,61 +72,12 @@ export const ProjectPill = ({ project, onToggleTimer, onAddTime, onSetTime, onEd
         onPointerLeave={handlePointerUp}
         onContextMenu={(e) => {
           e.preventDefault();
-          if (folders.length > 0) {
-            setShowFolderMenu(true);
-          } else {
-            onEdit();
-          }
+          onEdit();
         }}
         whileTap={{ scale: 0.98 }}
       >
         <AnimatePresence mode="crossFade">
-          {showFolderMenu && folders.length > 0 ? (
-            <motion.div
-              key="folder-menu"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-1 w-full flex-wrap justify-center"
-            >
-              <motion.button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveToFolder?.(null);
-                  setShowFolderMenu(false);
-                }}
-                className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-                whileTap={{ scale: 0.9 }}
-              >
-                none
-              </motion.button>
-              {folders.map((folder) => (
-                <motion.button
-                  key={folder.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMoveToFolder?.(folder.id);
-                    setShowFolderMenu(false);
-                  }}
-                  className="text-xs px-2 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-                  whileTap={{ scale: 0.9 }}
-                >
-                  {folder.name}
-                </motion.button>
-              ))}
-              <motion.button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowFolderMenu(false);
-                }}
-                className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
-                whileTap={{ scale: 0.9 }}
-              >
-                cancel
-              </motion.button>
-            </motion.div>
-          ) : !timeMenuExpanded ? (
+          {!timeMenuExpanded ? (
             <motion.div
               key="content"
               initial={{ opacity: 0 }}
