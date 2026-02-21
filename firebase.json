@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "projectelallavor",
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -14,6 +15,6 @@
     ]
   },
   "projects": {
-    "default": "elroureorg"
+    "default": "projectelallavor"
   }
 }
